@@ -6,17 +6,13 @@ plugins {
 }
 
 ftc {
-    // adds support for kotlin
     kotlin()
 }
 
 meta {
-    // TODO: modify
-    packagePath = "com.example"
-    // TODO: modify
-    name = "Library"
-    // TODO: modify
-    registerField("name", "String", "\"com.example.Library\"")
+    packagePath = "dev.frozenmilk"
+    name = "SilverSurfer"
+    registerField("name", "String", "\"dev.frozenmilk.silversurfer.SilverSurfer\"")
     registerField("clean", "Boolean") { "${dairyPublishing.clean}" }
     registerField("gitRef", "String") { "\"${dairyPublishing.gitRef}\"" }
     registerField("snapshot", "Boolean") { "${dairyPublishing.snapshot}" }
@@ -26,10 +22,8 @@ meta {
 publishing {
 	publications {
 		register<MavenPublication>("release") {
-            // TODO: modify
-            groupId = "com.example"
-            // TODO: modify
-            artifactId = "Library"
+            groupId = "dev.frozenmilk"
+            artifactId = "SilverSurfer"
 
 			artifact(dairyDoc.dokkaJavadocJar)
 			artifact(dairyDoc.dokkaHtmlJar)
