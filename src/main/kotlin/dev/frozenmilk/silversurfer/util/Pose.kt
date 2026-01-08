@@ -1,4 +1,4 @@
-package dev.frozenmilk.silversurfer
+package dev.frozenmilk.silversurfer.util
 
 import org.joml.Vector2d
 

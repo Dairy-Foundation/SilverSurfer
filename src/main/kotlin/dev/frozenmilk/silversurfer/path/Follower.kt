@@ -1,5 +1,6 @@
-package dev.frozenmilk.silversurfer
+package dev.frozenmilk.silversurfer.path
 
+import dev.frozenmilk.silversurfer.util.Pose
 import org.joml.Intersectiond
 import org.joml.Vector2d
 import org.joml.Math
