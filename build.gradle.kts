@@ -19,6 +19,10 @@ meta {
     registerField("version", "String") { "\"${dairyPublishing.version}\"" }
 }
 
+dependencies {
+    implementation(libs.joml)
+}
+
 publishing {
 	publications {
 		register<MavenPublication>("release") {

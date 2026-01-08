@@ -1,0 +1,7 @@
+[versions]
+joml = "1.10.8"
+
+[libraries]
+joml = { module = "org.joml:joml", version.ref="joml" }
+
+[plugins]
