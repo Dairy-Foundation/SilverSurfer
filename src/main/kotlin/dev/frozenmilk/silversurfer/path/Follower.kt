@@ -9,6 +9,9 @@ import org.joml.Vector3d
 import org.joml.times
 import kotlin.math.min
 
+/**
+ * TODO: Still need to implement turning and motion profiling
+ */
 class Follower(
     val localizer: Localizer,
     val fbController: (error: Double) -> Double,
