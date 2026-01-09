@@ -7,6 +7,7 @@ import org.joml.Math
 import org.joml.Vector2dc
 import org.joml.Vector3d
 import org.joml.times
+import kotlin.math.min
 
 class Follower(
     val localizer: Localizer,
@@ -18,6 +19,7 @@ class Follower(
     private val scratch2 = Vector2d()
     private val scratch3 = Vector2d()
     private val target = Vector2d()
+    private var segmentIdx = 0
 
     // path is a sequence of points
     fun translationalControl(path: Path, dest: Vector2d): Vector2d {
@@ -32,72 +34,71 @@ class Follower(
         return dest.set(fbController(error.x), lrController(error.y))
     }
 
-    private fun lookahead(currentPose: Pose, currentVelocity: Pose, path: Path): Vector2d {
-        var i = 0
-        var closestSegment = 0
-        path.start.sub(currentPose.vector, target)
-        var closestPointDistance = target.length()
-        var prev = path.start
-        while (i < path.segments.size) {
-            val segment = path.segments[i]
-            val segmentV = segment.point.sub(prev, scratch)
-            val dotted = segmentV.lengthSquared()
-            val sigma = if (dotted > 1e-20) currentPose.vector.dot(segmentV) / dotted
-            else 0.0
+    private fun lookahead(
+        currentPose: Pose,
+        currentVelocity: Pose,
+        path: Path
+    ): Vector2d {
+        val pos = currentPose.vector
+        val lookahead = path.segments[segmentIdx].lookahead(currentVelocity.vector.length())
 
-            val segmentClosestPoint = if (sigma < 0) prev
-            else if (sigma > 1) segment.point
-            else prev.add(segmentV.times(sigma), scratch)
-
-            val dist = segmentClosestPoint.sub(currentPose.vector, scratch).length()
-
-            if (dist < closestPointDistance) {
-                closestSegment = i
-                target.set(segmentClosestPoint)
-                closestPointDistance = dist
+        run {
+            val end = path.segments[segmentIdx].point
+            if (pos.distanceSquared(end) < 1e-4) {
+                if (segmentIdx < path.segments.size - 1) {
+                    segmentIdx++
+                }
             }
-
-            prev = segment.point
-            i++
         }
 
-        prev = if (closestSegment == 0) path.start
-        else path.segments[closestSegment - 1].point
+        if (segmentIdx == path.segments.size - 1) {
+            val end = path.segments.last().point
+            if (pos.distance(end) <= lookahead) {
+                return target.set(end)
+            }
+        }
 
-        val lookahead = path.segments[closestSegment].lookahead(currentVelocity.vector.length())
-        i = closestSegment
-        val target = target
+        var i = segmentIdx
+        val maxI = min(segmentIdx + 1, path.segments.size - 1)
 
-        while (i < path.segments.size) {
-            val segment = path.segments[i]
-            val intersects = Intersectiond.intersectLineCircle(
-                prev.x(),
-                prev.y(),
-                segment.point.x(),
-                segment.point.y(),
-                currentPose.vector.x(),
-                currentPose.vector.y(),
+        var prev =
+            if (i == 0) path.start
+            else path.segments[i - 1].point
+
+        while (i <= maxI) {
+            val seg = path.segments[i]
+
+            val hit = Intersectiond.intersectLineCircle(
+                prev.x(), prev.y(),
+                seg.point.x(), seg.point.y(),
+                pos.x(), pos.y(),
                 lookahead,
-                intersectionOutput,
+                intersectionOutput
             )
-            if (intersects) {
-                val point = scratch.set(intersectionOutput)
-                val line = segment.point.sub(prev, scratch2)
-                target.set(
-                    // two points
-                    if (intersectionOutput.z() > 1e-20) {
-                        val z = line.normalize(intersectionOutput.z(), scratch3)
-                        val a = point.add(z, scratch2).sub(segment.point)
-                        val b = point.sub(z, scratch2).sub(segment.point)
-                        if (a.length() > b.length()) b
-                        else a
-                    } else point
-                )
+
+            if (hit) {
+                val base = scratch.set(intersectionOutput)
+                val dir = seg.point.sub(prev, scratch2)
+
+                if (intersectionOutput.z() > 1e-12) {
+                    dir.normalize(intersectionOutput.z(), scratch3)
+
+                    val a = base.add(scratch3, scratch2)
+                    val b = base.sub(scratch3, scratch2)
+
+                    return target.set(
+                        if (a.distanceSquared(seg.point) < b.distanceSquared(seg.point)) a else b
+                    )
+                }
+
+                return target.set(base)
             }
+
+            prev = seg.point
             i++
         }
 
-        return target
+        return target.set(path.segments[segmentIdx].point)
     }
 }
 
